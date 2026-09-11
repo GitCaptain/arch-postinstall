@@ -1,0 +1,31 @@
+# Minimal Hyprland/Wayland desktop.
+# GPU-specific drivers should live in their own module.
+hyprland
+xorg-xwayland
+kitty
+waybar
+fuzzel
+mako
+hyprpaper
+hyprlock
+hypridle
+hyprpolkitagent
+xdg-desktop-portal
+xdg-desktop-portal-hyprland
+xdg-desktop-portal-gtk
+pipewire
+pipewire-audio
+pipewire-pulse
+wireplumber
+qt5-wayland
+qt6-wayland
+mesa
+vulkan-icd-loader
+wl-clipboard
+grim
+slurp
+brightnessctl
+playerctl
+noto-fonts
+noto-fonts-emoji
+ttf-jetbrains-mono-nerd

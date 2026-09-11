@@ -1,0 +1,9 @@
+# Replace this on the source machine by running:
+#   ./scripts/capture-current-base.sh
+# BEFORE installing GUI/extra modules.
+base
+linux
+linux-firmware
+sudo
+openssh
+git
