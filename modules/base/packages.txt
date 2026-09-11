@@ -13,4 +13,3 @@ nano
 networkmanager
 openssh
 sudo
-compsize

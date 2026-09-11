@@ -95,3 +95,21 @@ Each module has two interfaces:
 
 - `configure.sh plan` — description only; must not change the system.
 - `configure.sh apply` — performs configuration after package installation.
+
+## Compression benchmark
+
+Run separately from installation. With no source argument, the benchmark
+generates a temporary mixed corpus of small/medium/large compressible and
+incompressible files, runs the benchmark, and deletes it automatically:
+
+```bash
+./scripts/benchmark-btrfs-compression.sh
+```
+
+Use real data when useful:
+
+```bash
+./scripts/benchmark-btrfs-compression.sh --source /path/to/data 1 3 5 8
+```
+
+Choose the level, then pass it to `setup-arch.sh`.

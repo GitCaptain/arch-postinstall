@@ -38,7 +38,7 @@ tmp="$(mktemp)"
 trap 'rm -f "$tmp"' EXIT
 pacman -Qqen | sort -u > "$tmp"
 
-for pkg in sudo openssh git; do
+for pkg in sudo openssh git compsize; do
   grep -qxF "$pkg" "$tmp" || echo "$pkg" >> "$tmp"
 done
 
