@@ -2,9 +2,14 @@
 #   ./scripts/capture-current-base.sh
 # BEFORE installing GUI/extra modules.
 base
+base-devel
 linux
 linux-firmware
 sudo
 openssh
 git
 compsize
+networkmanager
+man-db
+man-pages
+nano

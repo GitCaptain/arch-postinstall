@@ -7,6 +7,7 @@ BUNDLED_KEYS="$REPO_ROOT/assets/authorized_keys"
 
 plan() {
   cat <<PLAN
+  - enable/start NetworkManager
   - configure OpenSSH server
   - PermitRootLogin no
   - PubkeyAuthentication yes
@@ -33,6 +34,7 @@ install_authorized_keys() {
 }
 
 apply() {
+  sudo systemctl enable --now NetworkManager
   install_authorized_keys
   sudo install -d -m 755 /etc/ssh/sshd_config.d
 
