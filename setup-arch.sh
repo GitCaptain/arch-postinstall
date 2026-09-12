@@ -7,6 +7,7 @@ DRY_RUN=0
 TARGET_USER=""
 BTRFS_COMPRESSION="zstd:-3"
 SWAP_SIZE="8G"
+GPU_PRIMARY="auto"
 
 log()  { printf '\033[1;34m==>\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33mWARN:\033[0m %s\n' "$*" >&2; }
@@ -25,12 +26,13 @@ Options:
   --user USER                 User whose desktop/config files should be configured.
   --btrfs-compression VALUE   Compression for btrfs module (default: zstd:-3).
   --swap-size SIZE            Swapfile size for btrfs module (default: 8G).
+  --gpu-primary MODE          Hyprland primary GPU: auto|nvidia|amd|intel (default: auto).
   -h, --help                  Show this help.
 
 Examples:
   ./setup-arch.sh --dry-run --module btrfs --module gui --module audio
   ./setup-arch.sh --module btrfs --module gui --module audio \
-    --btrfs-compression zstd:-3 --swap-size 16G
+    --gpu-primary nvidia --btrfs-compression zstd:-3 --swap-size 16G
 HELP
 }
 
@@ -49,10 +51,16 @@ while (($#)); do
     --user) (($# >= 2)) || die "--user requires a value"; TARGET_USER="$2"; shift 2 ;;
     --btrfs-compression) (($# >= 2)) || die "--btrfs-compression requires a value"; BTRFS_COMPRESSION="$2"; shift 2 ;;
     --swap-size) (($# >= 2)) || die "--swap-size requires a value"; SWAP_SIZE="$2"; shift 2 ;;
+    --gpu-primary) (($# >= 2)) || die "--gpu-primary requires a value"; GPU_PRIMARY="${2,,}"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) die "Unknown argument: $1" ;;
   esac
 done
+
+case "$GPU_PRIMARY" in
+  auto|nvidia|amd|intel) ;;
+  *) die "Invalid --gpu-primary '$GPU_PRIMARY'; expected auto, nvidia, amd or intel." ;;
+esac
 
 command -v pacman >/dev/null || die "pacman not found; this installer is for Arch Linux."
 
@@ -69,7 +77,7 @@ id "$TARGET_USER" &>/dev/null || die "User '$TARGET_USER' does not exist."
 TARGET_HOME="$(getent passwd "$TARGET_USER" | cut -d: -f6)"
 [[ -n "$TARGET_HOME" ]] || die "Could not resolve home directory for '$TARGET_USER'."
 
-export REPO_ROOT TARGET_USER TARGET_HOME BTRFS_COMPRESSION SWAP_SIZE
+export REPO_ROOT TARGET_USER TARGET_HOME BTRFS_COMPRESSION SWAP_SIZE GPU_PRIMARY
 
 read_packages() {
   sed -E \
@@ -190,6 +198,9 @@ if ((DRY_RUN)); then
   printf '\nDRY RUN — no files, packages, mounts or services will be changed.\n'
   printf 'Btrfs compression: %s\n' "$BTRFS_COMPRESSION"
   printf 'Swap size: %s\n' "$SWAP_SIZE"
+  if printf '%s\n' "${MODULES[@]}" | grep -qx gui; then
+    printf 'GPU primary policy: %s\n' "$GPU_PRIMARY"
+  fi
 
   show_hardware_plan
   show_package_plan

@@ -12,6 +12,7 @@ First inspect the exact plan:
   --module btrfs \
   --module gui \
   --module audio \
+  --gpu-primary nvidia \
   --btrfs-compression zstd:-3 \
   --swap-size 16G
 ```
@@ -38,7 +39,7 @@ All PCI display/3D controllers are scanned, so hybrid systems are supported.
 - AMD -> `mesa`
 - Intel -> `mesa`
 - NVIDIA -> `nvidia-utils` plus the appropriate `nvidia-open` kernel package
-- hybrid AMD/Intel + NVIDIA -> also `nvidia-prime` for the `prime-run` offload helper
+- hybrid AMD/Intel + NVIDIA -> also `nvidia-prime` for the `prime-run` offload helper; it is not added on NVIDIA-only systems
 - unknown vendor -> installer error instead of guessing
 
 For stock `linux` the NVIDIA kernel package is `nvidia-open`; for `linux-lts`
@@ -49,6 +50,22 @@ Current NVIDIA open kernel modules require Turing or newer GPUs (including
 GTX 16xx/RTX generations). Legacy NVIDIA hardware needs a separate/manual path.
 
 Gaming/multilib Vulkan packages are intentionally not installed here.
+
+### Primary GPU for Hyprland
+
+Use `--gpu-primary auto|nvidia|amd|intel`. `auto` selects the only GPU on a
+single-GPU machine. On a multi-GPU machine it deliberately does not guess the
+physical display topology and leaves `AQ_DRM_DEVICES` unset. Use an explicit
+value for deterministic hybrid setups, for example:
+
+```bash
+--gpu-primary nvidia
+```
+
+With an explicit primary, the GUI module creates stable udev symlinks under
+`/dev/dri/arch-gpu-*` and generates `~/.config/hypr/gpu.conf`. The selected
+GPU is first in `AQ_DRM_DEVICES`; all other detected GPUs follow as fallbacks so
+outputs attached to them can still be used.
 
 ## Minimal GUI
 
