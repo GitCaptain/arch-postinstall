@@ -1,0 +1,6 @@
+# Minimal PipeWire desktop audio stack.
+pipewire
+pipewire-audio
+pipewire-alsa
+pipewire-pulse
+wireplumber

@@ -1,115 +1,152 @@
-# arch-setup
+# arch-postinstall
 
-Small modular Arch Linux post-install repository.
+Modular Arch Linux post-install repository. `base` is always selected.
 
-## Rule
+## Recommended installation
 
-`setup-arch.sh` only consumes files already committed to this repository.
-It does not capture packages, generate manifests, or run benchmarks.
-
-`base` is always selected.
-
-```bash
-./setup-arch.sh --dry-run --module btrfs --module gui
-./setup-arch.sh --module btrfs --module gui
-```
-
-Btrfs options are inputs to the Btrfs module:
+First inspect the exact plan:
 
 ```bash
 ./setup-arch.sh \
+  --dry-run \
   --module btrfs \
-  --btrfs-compression zstd:3 \
+  --module gui \
+  --module audio \
+  --btrfs-compression zstd:-3 \
   --swap-size 16G
 ```
 
-## Capture the current base machine
+Then run the same command without `--dry-run`.
 
-Do this now, before installing the GUI/extra modules:
+## Hardware auto-detection
+
+### CPU microcode (`base`)
+
+`modules/base/detect-packages.sh` reads the CPU vendor:
+
+- AMD -> `amd-ucode`
+- Intel -> `intel-ucode`
+- anything else -> installer error; no guessed microcode package
+
+`capture-current-base.sh` deliberately excludes both microcode packages so the
+captured manifest remains portable between AMD and Intel machines.
+
+### GPU (`gui`)
+
+All PCI display/3D controllers are scanned, so hybrid systems are supported.
+
+- AMD -> `mesa`
+- Intel -> `mesa`
+- NVIDIA -> `nvidia-utils` plus the appropriate `nvidia-open` kernel package
+- hybrid AMD/Intel + NVIDIA -> also `nvidia-prime` for the `prime-run` offload helper
+- unknown vendor -> installer error instead of guessing
+
+For stock `linux` the NVIDIA kernel package is `nvidia-open`; for `linux-lts`
+it is `nvidia-open-lts`. Systems using `linux-zen`/`linux-hardened` use
+`nvidia-open-dkms` plus matching headers.
+
+Current NVIDIA open kernel modules require Turing or newer GPUs (including
+GTX 16xx/RTX generations). Legacy NVIDIA hardware needs a separate/manual path.
+
+Gaming/multilib Vulkan packages are intentionally not installed here.
+
+## Minimal GUI
+
+`gui` explicitly selects only:
+
+```text
+hyprland
+ghostty
+hyprpolkitagent
+xdg-desktop-portal-hyprland
+xdg-desktop-portal-gtk
+hyprlock
+hypridle
+wl-clipboard
+noto-fonts
+```
+
+Hardware-specific GPU packages are added dynamically.
+
+There is no Waybar, app launcher, notification daemon or wallpaper daemon yet.
+Hyprland uses a plain background. `SUPER+L` locks the session. Hypridle locks
+after 5 minutes, turns the display off after 5.5 minutes and suspends after
+30 minutes.
+
+No display manager is installed. Start Hyprland from a local TTY with:
+
+```bash
+start-hyprland
+```
+
+## Audio module
+
+`audio` is separate from `gui` and installs:
+
+```text
+pipewire
+pipewire-audio
+pipewire-alsa
+pipewire-pulse
+wireplumber
+```
+
+## Compression benchmark
+
+The benchmark is separate from installation and can compare compression levels
+and Btrfs worker-pool sizes:
+
+```bash
+./scripts/benchmark-btrfs-compression.sh \
+  --thread-pools 8 16 32 \
+  --runs 5 \
+  --write-runs 10 \
+  -5 -3 -1 1 3 5
+```
+
+## Capture base packages
+
+Run before adding GUI/extra packages on a source machine:
 
 ```bash
 ./scripts/capture-current-base.sh
 ```
 
-Optionally bundle the user's public SSH authorized keys:
+Optionally bundle public SSH authorized keys:
 
 ```bash
 ./scripts/capture-current-base.sh --copy-authorized-keys
 ```
 
-No private SSH key is copied.
-
-## Compression benchmark
-
-This is intentionally separate from installation:
-
-```bash
-./scripts/benchmark-btrfs-compression.sh /usr/bin 1 3 5 8
-```
-
-Choose a result, then pass it to `setup-arch.sh` via `--btrfs-compression`.
-
-## Add another module
-
-```bash
-./scripts/new-module.sh dev
-```
-
-Then edit:
-
-```text
-modules/dev/packages.txt
-modules/dev/configure.sh
-```
-
-Use it with:
-
-```bash
-./setup-arch.sh --module dev
-```
+No private SSH keys are copied.
 
 ## Layout
 
 ```text
-arch-setup/
+arch-postinstall/
 ├── setup-arch.sh
 ├── assets/
 ├── modules/
 │   ├── base/
 │   │   ├── packages.txt
+│   │   ├── detect-packages.sh
 │   │   └── configure.sh
 │   ├── btrfs/
 │   │   ├── packages.txt
 │   │   └── configure.sh
-│   └── gui/
+│   ├── gui/
+│   │   ├── packages.txt
+│   │   ├── detect-packages.sh
+│   │   ├── configure.sh
+│   │   └── files/
+│   │       ├── hyprland.conf
+│   │       ├── hypridle.conf
+│   │       └── hyprlock.conf
+│   └── audio/
 │       ├── packages.txt
-│       ├── configure.sh
-│       └── files/hyprland.conf
+│       └── configure.sh
 └── scripts/
     ├── capture-current-base.sh
     ├── benchmark-btrfs-compression.sh
     └── new-module.sh
 ```
-
-Each module has two interfaces:
-
-- `configure.sh plan` — description only; must not change the system.
-- `configure.sh apply` — performs configuration after package installation.
-
-## Compression benchmark
-
-Run separately from installation. With no source argument, the benchmark
-generates a temporary mixed corpus of small/medium/large compressible and
-incompressible files, runs the benchmark, and deletes it automatically:
-
-```bash
-./scripts/benchmark-btrfs-compression.sh
-```
-
-Use real data when useful:
-
-```bash
-./scripts/benchmark-btrfs-compression.sh --source /path/to/data 1 3 5 8
-```
-
-Choose the level, then pass it to `setup-arch.sh`.

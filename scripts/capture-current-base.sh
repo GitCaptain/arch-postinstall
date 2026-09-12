@@ -36,7 +36,9 @@ mkdir -p "$(dirname "$OUT")"
 
 tmp="$(mktemp)"
 trap 'rm -f "$tmp"' EXIT
-pacman -Qqen | sort -u > "$tmp"
+pacman -Qqen \
+  | grep -Ev '^(amd-ucode|intel-ucode)$' \
+  | sort -u > "$tmp"
 
 for pkg in sudo openssh git compsize; do
   grep -qxF "$pkg" "$tmp" || echo "$pkg" >> "$tmp"
@@ -45,6 +47,7 @@ done
 {
   echo "# Captured from source machine on $(date -Iseconds)"
   echo "# Explicit packages from official Arch repositories."
+  echo "# CPU microcode is intentionally excluded; modules/base/detect-packages.sh selects it."
   sort -u "$tmp"
 } > "$OUT"
 

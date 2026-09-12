@@ -1,15 +1,10 @@
-# Captured from source machine on 2026-09-12T00:27:24+03:00
-# Explicit packages from official Arch repositories.
-amd-ucode
+# Replace this on the source machine by running:
+#   ./scripts/capture-current-base.sh
+# BEFORE installing GUI/extra modules.
 base
-base-devel
-btrfs-progs
-git
 linux
 linux-firmware
-man-db
-man-pages
-nano
-networkmanager
-openssh
 sudo
+openssh
+git
+compsize
