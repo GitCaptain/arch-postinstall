@@ -63,7 +63,7 @@ value for deterministic hybrid setups, for example:
 ```
 
 With an explicit primary, the GUI module creates stable udev symlinks under
-`/dev/dri/arch-gpu-*` and generates `~/.config/hypr/gpu.conf`. The selected
+`/dev/dri/arch-gpu-*` and generates `~/.config/hypr/gpu.lua`. The selected
 GPU is first in `AQ_DRM_DEVICES`; all other detected GPUs follow as fallbacks so
 outputs attached to them can still be used.
 
@@ -156,7 +156,7 @@ arch-postinstall/
 │   │   ├── detect-packages.sh
 │   │   ├── configure.sh
 │   │   └── files/
-│   │       ├── hyprland.conf
+│   │       ├── hyprland.lua
 │   │       ├── hypridle.conf
 │   │       └── hyprlock.conf
 │   └── audio/
@@ -167,3 +167,9 @@ arch-postinstall/
     ├── benchmark-btrfs-compression.sh
     └── new-module.sh
 ```
+
+## Hyprland config format
+
+The GUI module writes the current Hyprland Lua configuration format
+(`~/.config/hypr/hyprland.lua`) used by Hyprland 0.55+.
+GPU selection is generated in `~/.config/hypr/gpu.lua`.
