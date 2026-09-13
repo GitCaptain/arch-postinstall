@@ -37,6 +37,7 @@ hl.config({
 hl.on("hyprland.start", function()
     hl.exec_cmd("systemctl --user start hyprpolkitagent.service")
     hl.exec_cmd("hypridle")
+    hl.exec_cmd("sh -lc 'dbus-update-activation-environment --systemd --all && systemctl --user start vicinae.service'")
 end)
 
 -- Basic application/window controls.
@@ -78,11 +79,10 @@ hl.bind(
     { mouse = true }
 )
 
--- Spotlight-like launcher.
 -- The service is started after Hyprland has created the graphical session.
 hl.on("hyprland.start", function()
-    hl.exec_cmd("systemctl --user start vicinae.service")
 end)
 
+-- Spotlight-like launcher.
 hl.bind("SUPER + SPACE", hl.dsp.exec_cmd("vicinae toggle"))
 

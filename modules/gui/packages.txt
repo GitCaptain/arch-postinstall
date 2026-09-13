@@ -11,3 +11,4 @@ noto-fonts
 sddm
 oo7
 xdg-utils
+noto-fonts-emoji

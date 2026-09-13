@@ -37,6 +37,7 @@ PLAN
   - install hyprlock + hypridle
   - install SDDM and boot to a graphical login screen
   - install oo7 Secret Service provider
+  - install Noto Color Emoji so desktop emoji render correctly
   - install vicinae-bin from AUR using yay
   - start Vicinae with the Hyprland session
   - bind SUPER+SPACE to Vicinae
