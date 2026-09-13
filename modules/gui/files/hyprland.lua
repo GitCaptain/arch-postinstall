@@ -17,7 +17,8 @@ hl.config({
     },
 
     input = {
-        kb_layout = "us",
+        kb_layout = "us,ru",
+        kb_options = "grp:alt_shift_toggle",
         follow_mouse = 1,
         touchpad = {
             natural_scroll = true,
@@ -76,3 +77,12 @@ hl.bind(
     hl.dsp.window.resize(),
     { mouse = true }
 )
+
+-- Spotlight-like launcher.
+-- The service is started after Hyprland has created the graphical session.
+hl.on("hyprland.start", function()
+    hl.exec_cmd("systemctl --user start vicinae.service")
+end)
+
+hl.bind("SUPER + SPACE", hl.dsp.exec_cmd("vicinae toggle"))
+

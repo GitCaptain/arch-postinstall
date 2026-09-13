@@ -8,3 +8,6 @@ hyprlock
 hypridle
 wl-clipboard
 noto-fonts
+sddm
+oo7
+xdg-utils

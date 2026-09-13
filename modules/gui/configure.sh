@@ -7,6 +7,11 @@ DETECTOR="$REPO_ROOT/modules/gui/detect-packages.sh"
 TARGET_DIR="$TARGET_HOME/.config/hypr"
 GPU_CONFIG="$TARGET_DIR/gpu.lua"
 UDEV_RULE_FILE="/etc/udev/rules.d/70-arch-postinstall-gpu-paths.rules"
+VICINAE_DESKTOP="/usr/share/applications/vicinae-url-handler.desktop"
+
+target_group() {
+  id -gn "$TARGET_USER"
+}
 
 plan() {
   cat <<PLAN
@@ -24,16 +29,19 @@ PLAN
   done < <("$DETECTOR" primary)
 
   cat <<'PLAN'
-  - when a primary GPU is explicit, create stable /dev/dri/arch-gpu-* udev symlinks
-  - set AQ_DRM_DEVICES with the primary GPU first and other detected GPUs as fallbacks
-  - install minimal Hyprland 0.55+ Lua config using Ghostty
-  - no Waybar, launcher, notification daemon or wallpaper daemon
-  - install hyprlock + hypridle configuration
-  - SUPER+L locks the session
-  - idle: lock at 5 min, display off at 5.5 min, suspend at 30 min
+  - create stable /dev/dri/arch-gpu-* udev symlinks for explicit GPU selection
+  - set AQ_DRM_DEVICES with the primary GPU first
+  - install Hyprland 0.55+ Lua config using Ghostty
+  - keyboard layouts: US + Russian; switch with Alt+Shift
+  - configure the same US/RU layout for the SDDM/X11 login screen
+  - install hyprlock + hypridle
+  - install SDDM and boot to a graphical login screen
+  - install oo7 Secret Service provider
+  - install vicinae-bin from AUR using yay
+  - start Vicinae with the Hyprland session
+  - bind SUPER+SPACE to Vicinae
+  - register vicinae:// and raycast:// XDG URL handlers
   - preserve each existing user config once as *.pre-arch-setup
-  - no display manager is configured
-  - launch from a local TTY with: start-hyprland
 PLAN
 }
 
@@ -42,13 +50,14 @@ install_user_config() {
   name="$1"
   source="$SOURCE_DIR/$name"
   target="$TARGET_DIR/$name"
+
   [[ -f "$source" ]] || { echo "Missing $source" >&2; exit 1; }
 
   if [[ -e "$target" && ! -e "${target}.pre-arch-setup" ]]; then
     sudo -u "$TARGET_USER" cp -a "$target" "${target}.pre-arch-setup"
   fi
 
-  sudo install -m 644 -o "$TARGET_USER" -g "$TARGET_USER" "$source" "$target"
+  sudo install -m 644 -o "$TARGET_USER" -g "$(target_group)" "$source" "$target"
 }
 
 install_generated_gpu_config() {
@@ -70,17 +79,17 @@ install_generated_gpu_config() {
     sudo -u "$TARGET_USER" cp -a "$GPU_CONFIG" "${GPU_CONFIG}.pre-arch-setup"
   fi
 
-  sudo install -m 644 -o "$TARGET_USER" -g "$TARGET_USER" "$tmp" "$GPU_CONFIG"
+  sudo install -m 644 -o "$TARGET_USER" -g "$(target_group)" "$tmp" "$GPU_CONFIG"
   rm -f "$tmp"
 }
 
 install_gpu_udev_rules() {
   local rules="$1" tmp
+
   [[ -n "$rules" ]] || {
-    # Remove only a rule created by this installer when switching back to
-    # topology-agnostic auto mode. Preserve a one-time backup first.
     if [[ -e "$UDEV_RULE_FILE" ]]; then
-      [[ -e "${UDEV_RULE_FILE}.pre-arch-setup" ]] || sudo cp -a "$UDEV_RULE_FILE" "${UDEV_RULE_FILE}.pre-arch-setup"
+      [[ -e "${UDEV_RULE_FILE}.pre-arch-setup" ]] ||
+        sudo cp -a "$UDEV_RULE_FILE" "${UDEV_RULE_FILE}.pre-arch-setup"
       sudo rm -f "$UDEV_RULE_FILE"
       sudo udevadm control --reload
     fi
@@ -101,6 +110,29 @@ install_gpu_udev_rules() {
   sudo udevadm trigger --subsystem-match=drm || true
 }
 
+install_vicinae() {
+  command -v yay >/dev/null 2>&1 || {
+    echo "yay is missing; base configuration must complete before gui." >&2
+    exit 1
+  }
+
+  if ! pacman -Qq vicinae-bin >/dev/null 2>&1; then
+    sudo -u "$TARGET_USER" env HOME="$TARGET_HOME" \
+      yay -S --needed --noconfirm vicinae-bin
+  fi
+
+  [[ -f "$VICINAE_DESKTOP" ]] || {
+    echo "Vicinae URL handler desktop file is missing: $VICINAE_DESKTOP" >&2
+    exit 1
+  }
+
+  sudo -u "$TARGET_USER" env HOME="$TARGET_HOME" \
+    xdg-mime default vicinae-url-handler.desktop x-scheme-handler/vicinae
+
+  sudo -u "$TARGET_USER" env HOME="$TARGET_HOME" \
+    xdg-mime default vicinae-url-handler.desktop x-scheme-handler/raycast
+}
+
 apply() {
   local devices rules
   devices="$("$DETECTOR" drm-devices)"
@@ -108,10 +140,11 @@ apply() {
 
   sudo -u "$TARGET_USER" mkdir -p "$TARGET_DIR"
 
-  # Hyprland 0.55+ prefers hyprland.lua. Preserve any pre-existing legacy
-  # hyprland.conf once, but do not delete user data.
-  if [[ -e "$TARGET_DIR/hyprland.conf" && ! -e "$TARGET_DIR/hyprland.conf.pre-arch-setup" ]]; then
-    sudo -u "$TARGET_USER" cp -a       "$TARGET_DIR/hyprland.conf"       "$TARGET_DIR/hyprland.conf.pre-arch-setup"
+  if [[ -e "$TARGET_DIR/hyprland.conf" &&
+        ! -e "$TARGET_DIR/hyprland.conf.pre-arch-setup" ]]; then
+    sudo -u "$TARGET_USER" cp -a \
+      "$TARGET_DIR/hyprland.conf" \
+      "$TARGET_DIR/hyprland.conf.pre-arch-setup"
   fi
 
   install_user_config hyprland.lua
@@ -119,14 +152,23 @@ apply() {
   install_user_config hyprlock.conf
   install_generated_gpu_config "$devices"
   install_gpu_udev_rules "$rules"
+  install_vicinae
 
-  printf 'Minimal Hyprland configuration installed for %s.\n' "$TARGET_USER"
+  # Keep the graphical login screen consistent with the Hyprland session.
+  sudo localectl set-x11-keymap --no-convert us,ru pc105 "" grp:alt_shift_toggle
+
+  sudo systemctl enable sddm.service
+  sudo systemctl set-default graphical.target
+
+  printf 'Hyprland desktop configuration installed for %s.\n' "$TARGET_USER"
   if [[ -n "$devices" ]]; then
     printf 'AQ_DRM_DEVICES=%s\n' "$devices"
   else
     printf 'AQ_DRM_DEVICES left unset (multi-GPU auto policy).\n'
   fi
-  printf 'Launch from a LOCAL TTY as that user with: start-hyprland\n'
+  printf 'Keyboard: US/RU, Alt+Shift switches layouts.\n'
+  printf 'Vicinae: SUPER+SPACE; vicinae:// registered through XDG.\n'
+  printf 'SDDM enabled; next boot starts at a graphical login screen.\n'
   printf 'A reboot is recommended after installing/changing NVIDIA kernel modules.\n'
 }
 
