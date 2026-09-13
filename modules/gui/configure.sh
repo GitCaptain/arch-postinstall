@@ -38,7 +38,10 @@ PLAN
 }
 
 install_user_config() {
-  local name="$1" source="$SOURCE_DIR/$name" target="$TARGET_DIR/$name"
+  local name source target
+  name="$1"
+  source="$SOURCE_DIR/$name"
+  target="$TARGET_DIR/$name"
   [[ -f "$source" ]] || { echo "Missing $source" >&2; exit 1; }
 
   if [[ -e "$target" && ! -e "${target}.pre-arch-setup" ]]; then
